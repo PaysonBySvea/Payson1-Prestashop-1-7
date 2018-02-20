@@ -186,12 +186,27 @@ if ($payResponse->getResponseEnvelope()->wasSuccessful()) {  //ack = SUCCESS och
 function orderItemsList($cart, $payson) {
 
     include_once(_PS_MODULE_DIR_ . 'paysondirect/payson/orderitem.php');
-
+    
+    $currency = new Currency($cart->id_currency);
+    $cur = $currency->decimals;
+    $lastrate = "notset";
+    $has_different_rates = false;
+    $totalCartValue = 0;
+   
     $orderitemslist = array();
     foreach ($cart->getProducts() AS $cartProduct) {
         if (isset($cartProduct['quantity_discount_applies']) && $cartProduct['quantity_discount_applies'] == 1){
             $payson->discount_applies = 1;
         }
+        
+        if ($lastrate == "notset") {
+            $lastrate = $cartProduct['rate'];
+        } elseif ($lastrate != $cartProduct['rate']) {
+            $has_different_rates = true;
+        }
+        
+        $price = Tools::ps_round($cartProduct['price_wt'], 2);
+        $totalCartValue += ($price * (int) ($cartProduct['cart_quantity']));
         
         $my_taxrate = $cartProduct['rate'] / 100;
         $product_price = $cartProduct['price'];
@@ -202,48 +217,51 @@ function orderItemsList($cart, $payson) {
         );
     }
 
-    // check discounts
     $cartDiscounts = $cart->getDiscounts();
+    $total_shipping_wt = Tools::ps_round($cart->getTotalShippingCost(), $cur * _PS_PRICE_DISPLAY_PRECISION_);
+    $total_shipping_wot = 0;
     $carrier = new Carrier($cart->id_carrier, $cart->id_lang);
     
-    $tax_rate_discount = 0;
-    $taxDiscount = Cart::getTaxesAverageUsed((int) ($cart->id));
-    if (isset($taxDiscount) AND $taxDiscount != 1){
-        $tax_rate_discount = $taxDiscount * 0.01;
-    }
-
-    foreach ($cartDiscounts AS $cartDiscount) {
-        if ((!$carrier->is_free && !$cartDiscount['reduction_tax']) || ($carrier->is_free && !$cartDiscount['reduction_tax']) || (!$carrier->is_free && $cartDiscount['reduction_tax'])){
-            $value = (Tools::ps_round($cartDiscount['value_real'], Configuration::get('PS_PRICE_DISPLAY_PRECISION')) - (empty($cartDiscounts) ? 0 : $cartDiscounts[$i]['obj']->free_shipping ? Tools::ps_round($total_shipping_wt, Configuration::get('PS_PRICE_DISPLAY_PRECISION')) : 0)) / (1 + $tax_rate_discount);
-        }else{
-            $value = $cartDiscount['value_tax_exc']; //$objDiscount->getValue(sizeof($cartDiscounts), $cart->getOrderTotal(true, 1), $cart->getTotalShippingCost(), $cart->id);
-        }
-
-        $orderitemslist[] = new OrderItem($cartDiscount['name'], number_format(-$value, 2, '.', ''), 1, $tax_rate_discount, 'discoun');
-    }
-
-    $total_shipping_wt = _PS_VERSION_ >= 1.5 ? floatval($cart->getTotalShippingCost()) : floatval($cart->getOrderShippingCost());
-
     if ($total_shipping_wt > 0) {
-
         $carriertax = Tax::getCarrierTaxRate((int) $carrier->id, $cart->id_address_invoice);
         $carriertax_rate = $carriertax / 100;
-
         $forward_vat = 1 + $carriertax_rate;
         $total_shipping_wot = $total_shipping_wt / $forward_vat;
 
-        $orderitemslist[] = new OrderItem(
-                isset($carrier->name) ? $carrier->name : 'shipping', number_format($total_shipping_wot, 2, '.', ''), 1, number_format($carriertax_rate, 2, '.', ''), 9998
-        );
+        if (!empty($cartDiscounts) && (!empty($cartDiscounts[0]['obj'])) && $cartDiscounts[0]['obj']->free_shipping) {
+
+        } else {
+            $orderitemslist[] = new OrderItem(isset($carrier->name) ? $carrier->name : 'Shipping', $total_shipping_wot, 1, number_format($carriertax_rate, 2, '.', ''), 'Shipping');
+        }
+    }
+
+    $total_discounts = 0;
+    foreach ($cart->getCartRules(CartRule::FILTER_ACTION_ALL) as $cart_rule) {
+        $value_real = $cart_rule["value_real"];
+        $value_tax_exc = $cart_rule["value_tax_exc"];
+
+        if ($has_different_rates == false) {
+            $discount_tax_rate = Tools::ps_round($lastrate, 2);
+        } else {
+            $discount_tax_rate = (($value_real / $value_tax_exc) - 1) * 100;
+
+            $discount_tax_rate = Tools::ps_round($discount_tax_rate, 2);
+        }
+
+        if ($totalCartValue<=$total_discounts) {
+            $value_real = 0;
+        }
+        
+        $orderitemslist[] = new OrderItem($cart_rule["name"], -(Tools::ps_round($value_tax_exc, 2)), 1, number_format(($discount_tax_rate * 0.01), 4, '.', ''), 'Discount');
+        $total_discounts += $value_real;
     }
     
-     if ($cart->gift) {
+    if ($cart->gift) {
         $wrapping_price_temp = Tools::convertPrice((float) $cart->getOrderTotal(false, Cart::ONLY_WRAPPING), Currency::getCurrencyInstance((int) $cart->id_currency));
         $orderitemslist[] = new OrderItem(
                 'gift wrapping', $wrapping_price_temp, 1, number_format((((($cart->getOrderTotal(true, Cart::ONLY_WRAPPING) * 100) / $cart->getOrderTotal(false, Cart::ONLY_WRAPPING)) - 100) / 100), 4, '.', ''), 9999
         );
     }
-
 
     return $orderitemslist;
 }
