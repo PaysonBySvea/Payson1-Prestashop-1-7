@@ -44,25 +44,13 @@ class PaysonCheckout1ConfirmationModuleFrontController extends ModuleFrontContro
                 throw new Exception($this->module->l('Unable to show confirmation.', 'confirmation') . ' ' . $this->module->l('Missing cart ID.', 'confirmation'));
             }
 
-            if (isset($this->context->cookie->paysonCheckoutId) && $this->context->cookie->paysonCheckoutId != null) {
-                // Get checkout ID from cookie
-                $checkoutId = $this->context->cookie->paysonCheckoutId;
-                PaysonCheckout1::paysonAddLog('Got checkout ID: ' . $checkoutId . ' from cookie.');
+            // Get checkout ID from query
+            if (Tools::getIsset('TOKEN') && Tools::getValue('TOKEN') != null) {
+                $checkoutId = Tools::getValue('TOKEN');
+                PaysonCheckout1::paysonAddLog('Got checkout ID: ' . $checkoutId . ' from query.');
             } else {
-                // Get checkout ID from query
-                if (Tools::getIsset('TOKEN') && Tools::getValue('TOKEN') != null) {
-                    $checkoutId = Tools::getValue('TOKEN');
-                    PaysonCheckout1::paysonAddLog('Got checkout ID: ' . $checkoutId . ' from query.');
-                } else {
-                    // Get checkout ID from DB
-                    $checkoutId = $payson->getPaysonOrderEventId($cartId);
-                    if (isset($checkoutId) && $checkoutId != null) {
-                        PaysonCheckout1::paysonAddLog('Got checkout ID: ' . $checkoutId . ' from DB.');
-                    } else {
-                        // Unable to get checkout ID
-                        throw new Exception($this->module->l('Unable to show confirmation.', 'confirmation') . ' ' . $this->module->l('Missing checkout ID.', 'confirmation'));
-                    }
-                }
+                // Unable to get checkout ID
+                throw new Exception($this->module->l('Unable to show confirmation.', 'confirmation') . ' ' . $this->module->l('Missing checkout ID.', 'confirmation'));
             }
 
             $paysonApi = $payson->getPaysonApiInstance();
@@ -139,9 +127,6 @@ class PaysonCheckout1ConfirmationModuleFrontController extends ModuleFrontContro
                     
             }
             
-            // Delete checkout id cookie
-            $this->context->cookie->__set('paysonCheckoutId', null);
-            
             if ($newOrderId != false) {
                 $order = new Order((int) $newOrderId);
             } elseif ($cart->OrderExists()) {
@@ -156,9 +141,6 @@ class PaysonCheckout1ConfirmationModuleFrontController extends ModuleFrontContro
         } catch (Exception $ex) {
             // Log error message
             PaysonCheckout1::paysonAddLog('Confirmation error: ' . $ex->getMessage(), 2);
-
-            // Delete checkout id cookie
-            $this->context->cookie->__set('paysonCheckoutId', null);
             
             // Set message
             $this->context->cookie->__set('payson_order_error', $ex->getMessage());
