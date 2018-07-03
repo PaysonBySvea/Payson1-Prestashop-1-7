@@ -105,9 +105,9 @@ class PaysonCheckout1ConfirmationModuleFrontController extends ModuleFrontContro
                                     $invoiceProduct = $payson->getProductFromRef('PS_FA');
                                     PaysonCheckout1::paysonAddLog('Invoice fee product ID ' . $invoiceProduct->id);
                                     if ($invoiceProduct != false && $invoiceProduct->price > 0) {
-                                       $cart->updateQty(1, (int) $invoiceProduct->id, null, false, 'up', 0, new Shop((int) $cart->id_shop), false);
+                                        $cart->updateQty(1, (int) $invoiceProduct->id, null, false, 'up', 0, new Shop((int) $cart->id_shop), false);
                                     }
-                                } catch(Exception $xx) {
+                                } catch (Exception $xx) {
                                     PaysonCheckout1::paysonAddLog('Unable to add invoice fee product to cart. ' . $xx->getMessage());
                                 }
                                 
@@ -124,7 +124,7 @@ class PaysonCheckout1ConfirmationModuleFrontController extends ModuleFrontContro
                 case 'guarantee':
                     break;
                 default:
-                    
+                    break;
             }
             
             if ($newOrderId != false) {

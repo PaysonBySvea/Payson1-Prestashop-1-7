@@ -54,7 +54,7 @@ class PaysonCheckout1 extends PaymentModule
 
     public function install()
     {
-        if (parent::install() == false || 
+        if (parent::install() == false ||
                 !$this->registerHook('paymentOptions') ||
                 !$this->registerHook('actionOrderStatusUpdate') ||
                 !$this->registerHook('displayContentWrapperTop')
@@ -63,8 +63,6 @@ class PaysonCheckout1 extends PaymentModule
         }
         
         $this->adminDefaultSettings();
-        
-        $this->createPaysonOrderTable();
 
         $orderStates = OrderState::getOrderStates(Configuration::get('PS_LANG_DEFAULT'));
         $name = $this->l('Betald med Payson Checkout 1.0');
@@ -85,7 +83,6 @@ class PaysonCheckout1 extends PaymentModule
             return $return;
         }
         return;
-        
     }
     
     public function uninstall()
@@ -197,31 +194,31 @@ class PaysonCheckout1 extends PaymentModule
     public function adminValidateSettings()
     {
         if (trim(Tools::getValue('PAYSONCHECKOUT1_AGENTID')) == '' || trim(Tools::getValue('PAYSONCHECKOUT1_APIKEY') == '')) {
-                return $this->l('Agent ID and API Key are required.');
-            }
+            return $this->l('Agent ID and API Key are required.');
+        }
             
-            $this::paysonAddLog(print_r((int) Tools::getValue('PAYSONCHECKOUT1_MODE'), true));
-            $accountInfo = $this->validateAccount(trim(Tools::getValue('PAYSONCHECKOUT1_AGENTID')), trim(Tools::getValue('PAYSONCHECKOUT1_APIKEY')), (int) Tools::getValue('PAYSONCHECKOUT1_MODE'));
-            $this::paysonAddLog(print_r($accountInfo, true));
-            if ($accountInfo->getAccountEmail() == '' || $accountInfo->getAccountEmail() == null) {
-                return $this->l('Unable to get account information. Check Agent ID and API Key and turn off Test mode when using credentials for an PaysonAccount.');
-            }
-            
-            Configuration::updateValue('PAYSONCHECKOUT1_AGENT_EMAIL', $accountInfo->getAccountEmail());
+        $this::paysonAddLog(print_r((int) Tools::getValue('PAYSONCHECKOUT1_MODE'), true));
+        $accountInfo = $this->validateAccount(trim(Tools::getValue('PAYSONCHECKOUT1_AGENTID')), trim(Tools::getValue('PAYSONCHECKOUT1_APIKEY')), (int) Tools::getValue('PAYSONCHECKOUT1_MODE'));
+        $this::paysonAddLog(print_r($accountInfo, true));
+        if ($accountInfo->getAccountEmail() == '' || $accountInfo->getAccountEmail() == null) {
+            return $this->l('Unable to get account information. Check Agent ID and API Key and turn off Test mode when using credentials for an PaysonAccount.');
+        }
 
-            if ($accountInfo->getEnabledForInvoice() == true) {
-                Configuration::updateValue('PAYSONCHECKOUT1_INVOICE_ENABLED', 1);
-                if (Tools::getValue('PAYSONCHECKOUT1_INVOICE_FEE') && (Tools::getValue('PAYSONCHECKOUT1_INVOICE_FEE') > 40 || !is_numeric(Tools::getValue('PAYSONCHECKOUT1_INVOICE_FEE')))) {
-                    return $this->l('Invoice Fee must be between 0-40');
-                }
-            } else {
-                Configuration::updateValue('PAYSONCHECKOUT1_INVOICE_ENABLED', 0);       
-            }
+        Configuration::updateValue('PAYSONCHECKOUT1_AGENT_EMAIL', $accountInfo->getAccountEmail());
 
-            $invActive = $accountInfo->getEnabledForInvoice() == true ? $this->l('Yes') : $this->l('No');
-            Configuration::updateValue('PAYSONCHECKOUT1_ACCOUNT_INFO', $accountInfo->getAccountEmail() . ', ' . $this->l('Inovice') . ': ' . $invActive);
-            
-            return '';
+        if ($accountInfo->getEnabledForInvoice() == true) {
+            Configuration::updateValue('PAYSONCHECKOUT1_INVOICE_ENABLED', 1);
+            if (Tools::getValue('PAYSONCHECKOUT1_INVOICE_FEE') && (Tools::getValue('PAYSONCHECKOUT1_INVOICE_FEE') > 40 || !is_numeric(Tools::getValue('PAYSONCHECKOUT1_INVOICE_FEE')))) {
+                return $this->l('Invoice Fee must be between 0-40');
+            }
+        } else {
+            Configuration::updateValue('PAYSONCHECKOUT1_INVOICE_ENABLED', 0);
+        }
+
+        $invActive = $accountInfo->getEnabledForInvoice() == true ? $this->l('Yes') : $this->l('No');
+        Configuration::updateValue('PAYSONCHECKOUT1_ACCOUNT_INFO', $accountInfo->getAccountEmail() . ', ' . $this->l('Inovice') . ': ' . $invActive);
+
+        return '';
     }
     
     public function getContent()
@@ -556,35 +553,6 @@ class PaysonCheckout1 extends PaymentModule
         }
     }
 
-    private function createPaysonOrderTable()
-    {
-        $sql = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'payson_embedded_order` (
-	        `payson_embedded_id` int(11) auto_increment,
-                `cart_id` int(15) NOT null,
-		`order_id` int(15) DEFAULT null,
-                `checkout_id` varchar(40) DEFAULT null,
-                `purchase_id` varchar(50) DEFAULT null,
-		`payment_status` varchar(20) DEFAULT null,
-		`added` datetime DEFAULT null,
-		`updated` datetime DEFAULT null,
-		`sender_email` varchar(50) DEFAULT null,
-		`currency_code` varchar(5) DEFAULT null,
-		`tracking_id`  varchar(100) DEFAULT null,
-		`type` varchar(50) DEFAULT null,
-		`shippingAddress_name` varchar(50) DEFAULT null,
-		`shippingAddress_lastname` varchar(50) DEFAULT null,
-		`shippingAddress_street_address` varchar(60) DEFAULT null,
-		`shippingAddress_postal_code` varchar(20) DEFAULT null,
-		`shippingAddress_city` varchar(60) DEFAULT null,
-		`shippingAddress_country` varchar(60) DEFAULT null,
-		PRIMARY KEY  (`payson_embedded_id`)
-	        ) ENGINE=' . _MYSQL_ENGINE_;
-
-        if (Db::getInstance()->execute($sql) == false) {
-            return false;
-        }
-    }
-
     public function getRedirectPaymentOption()
     {
         if ($this->active) {
@@ -598,7 +566,8 @@ class PaysonCheckout1 extends PaymentModule
         }
     }
 
-    public function redirectToPayson() {
+    public function redirectToPayson()
+    {
         try {
             PaysonCheckout1::paysonAddLog('* ' . __FILE__ . ' -> ' . __METHOD__ . ' *');
             $trackingId = time();
@@ -638,8 +607,8 @@ class PaysonCheckout1 extends PaymentModule
                 $invoiceProduct = $this->getProductFromRef('PS_FA');
                 PaysonCheckout1::paysonAddLog('Invoice fee product ID: ' . $invoiceProduct->id);
                 if ($invoiceProduct != false && Product::getPriceStatic($invoiceProduct->id) > 0) {
-                   $invoiceFee = (float) Product::getPriceStatic($invoiceProduct->id);
-                   PaysonCheckout1::paysonAddLog('Invoice fee: ' . $invoiceFee);
+                    $invoiceFee = (float) Product::getPriceStatic($invoiceProduct->id);
+                    PaysonCheckout1::paysonAddLog('Invoice fee: ' . $invoiceFee);
                 }
             }
 
@@ -669,9 +638,8 @@ class PaysonCheckout1 extends PaymentModule
             $payResponse = $paysonApi->pay($payData);
 
             if ($payResponse->getResponseEnvelope()->wasSuccessful()) {
-                $this->createPaysonOrderEvent($payResponse->getToken(), $cart->id);
                 // Redirect to Payson
-                header("Location: " . $paysonApi->getForwardPayUrl($payResponse));
+                Tools::redirect($paysonApi->getForwardPayUrl($payResponse));
             } else {
                 $errMess =  '';
                 $apiErrors = $payResponse->getResponseEnvelope()->getErrors();
@@ -679,7 +647,7 @@ class PaysonCheckout1 extends PaymentModule
                     $errMess .= $error->getMessage() . ' ';
                 }
                 
-                throw new Exception($errMess); 
+                throw new Exception($errMess);
             }
         } catch (Exception $ex) {
             // Log error message
@@ -693,7 +661,8 @@ class PaysonCheckout1 extends PaymentModule
         }
     }
     
-    public function getConstraints($id) {
+    public function getConstraints($id)
+    {
         switch ((int) $id) {
             case 1:
                 return array(FundingConstraint::INVOICE, FundingConstraint::CREDITCARD, FundingConstraint::BANK);
@@ -712,24 +681,6 @@ class PaysonCheckout1 extends PaymentModule
             default:
                 return array(FundingConstraint::CREDITCARD, FundingConstraint::BANK);
         }
-    }
-
-    public function updatePaysonCheckout($checkout, $customer, $cart, $payson, $address, $currency)
-    {
-        if ($customer->email != null && $checkout->status != 'readyToPay') {
-            $checkout->customer->firstName = $customer->firstname;
-            $checkout->customer->lastName = $customer->lastname;
-            $checkout->customer->email = $customer->email;
-            $checkout->customer->phone = $address->phone;
-            $checkout->customer->city = $address->city;
-            $checkout->customer->countryCode = Country::getIsoById($address->id_country);
-            $checkout->customer->postalCode = $address->postcode;
-            $checkout->customer->street = $address->address1;
-        }
-
-        $checkout->payData->items = $this->orderItemsList($cart, $payson, $currency);
-
-        return $checkout;
     }
 
     /**
@@ -783,9 +734,6 @@ class PaysonCheckout1 extends PaymentModule
                 // Get new order ID
                 $order = Order::getOrderByCartId((int) ($cart->id));
 
-                // Save order number in DB
-                $this->updatePaysonOrderEvent($paymentDetails, $cart->id, (int) $order, $customer);
-
                 return $order;
             } else {
                 PaysonCheckout1::paysonAddLog('PS order already exits.');
@@ -794,77 +742,6 @@ class PaysonCheckout1 extends PaymentModule
             PaysonCheckout1::paysonAddLog('PS failed to create order: ' . $ex->getMessage());
         }
         return false;
-    }
-
-    public function paysonOrderExists($purchaseid)
-    {
-        $result = (bool) Db::getInstance()->getValue('SELECT count(*) FROM `' . _DB_PREFIX_ . 'payson_embedded_order` WHERE `purchase_id` = ' . (int) $purchaseid);
-        return $result;
-    }
-
-    public function getPaysonOrderEventId($cartId)
-    {
-        $result = Db::getInstance()->getValue('SELECT checkout_id FROM `' . _DB_PREFIX_ . 'payson_embedded_order` WHERE `cart_id` = ' . (int) $cartId);
-        return $result;
-    }
-    /*
-     * @return void
-     * @param checkoutId
-     * @param $currentCartId
-     * @disc The function save the parameters in the database
-     */
-
-    public function createPaysonOrderEvent($checkoutId, $cartId = 0)
-    {
-        $alreadyCreated = $this->getPaysonOrderEventId($cartId);
-        if (!isset($alreadyCreated) || (int) $alreadyCreated < 1) {
-            Db::getInstance()->insert('payson_embedded_order', array(
-                'cart_id' => (int) $cartId,
-                'checkout_id' => pSQL($checkoutId),
-                'purchase_id' => pSQL($checkoutId),
-                'payment_status' => 'created',
-                'added' => date('Y-m-d H:i:s'),
-                'updated' => date('Y-m-d H:i:s')));
-        } else {
-            Db::getInstance()->update('payson_embedded_order', array(
-                'checkout_id' => pSQL($checkoutId),
-                'purchase_id' => pSQL($checkoutId),
-                'payment_status' => 'created',
-                'added' => date('Y-m-d H:i:s'),
-                'updated' => date('Y-m-d H:i:s')
-                    ), 'cart_id = ' . (int) $cartId);
-        }
-    }
-    /*
-     * @return void
-     * @param $checkout
-     * @param $ccartId
-     * @param $psOrder
-     * @disc The function update the parameters in the database
-     */
-
-    public function updatePaysonOrderEvent($paymentDetails, $cartId = 0, $psOrder = 0, $customer = null)
-    {
-        $sql = 'UPDATE `' . _DB_PREFIX_ . 'payson_embedded_order` SET
-            `cart_id` = "' . (int) $cartId . '",';
-        if ($psOrder > 0) {
-            $sql .= '`order_id` = "' . (int) $psOrder . '",';
-        }
-        $sql .= '`payment_status` = "' . pSQL($paymentDetails->getStatus()) . '",
-            `updated` = NOW(),
-            `sender_email` = "' . pSQL($customer->email) . '", 
-            `currency_code` = "' . pSQL("") . '",
-            `tracking_id` = "",
-            `type` = "embedded",
-            `shippingAddress_name` = "' . pSQL($paymentDetails->getShippingAddressName()) . '",
-            `shippingAddress_lastname` = "' . pSQL($paymentDetails->getShippingAddressName()) . '",
-            `shippingAddress_street_address` = "' . pSQL($paymentDetails->getShippingAddressStreetAddress()) . '",
-            `shippingAddress_postal_code` = "' . pSQL($paymentDetails->getShippingAddressPostalCode()) . '",
-            `shippingAddress_city` = "' . pSQL($paymentDetails->getShippingAddressCity()) . '",
-            `shippingAddress_country` = "' . pSQL($paymentDetails->getShippingAddressCountry()) . '"
-            WHERE `checkout_id` = "' . pSQL($paymentDetails->getPurchaseId()) . '"';
-
-        Db::getInstance()->execute($sql);
     }
     
     public function validPaysonCurrency($currency)
@@ -905,7 +782,8 @@ class PaysonCheckout1 extends PaymentModule
         return new PaysonApi(new PaysonCredentials($agentId, $apiKey, null, $this->version), $testMode);
     }
 
-    public function validateAccount($agentId = false, $apiKey = false, $testMode = false) {
+    public function validateAccount($agentId = false, $apiKey = false, $testMode = false)
+    {
         $paysonApi = $this->getPaysonApiInstance($agentId, $apiKey, $testMode);
         $response = $paysonApi->accountDetails();
         $accountDetails = $response->getAccountDetails();
@@ -1021,7 +899,7 @@ class PaysonCheckout1 extends PaymentModule
         try {
             $invoiceProduct = new Product();
             $languages = $this->context->controller->getLanguages();
-            foreach($languages as $lang) {
+            foreach ($languages as $lang) {
                 $invoiceProduct->name[(int) $lang['id_lang']] = $this->l('Invoice fee');
                 $invoiceProduct->description[(int) $lang['id_lang']] = $this->l('Invoice fee for Payson Checkout 1.0');
                 $invoiceProduct->link_rewrite[(int) $lang['id_lang']] = 'payson-checkout1-invoice-fee';
@@ -1046,12 +924,11 @@ class PaysonCheckout1 extends PaymentModule
             StockAvailable::setQuantity($invoiceProduct->id, null, 100000);
 
             return $invoiceProduct;
-        } catch(Exception $ex) {
+        } catch (Exception $ex) {
             // Log error message
             PaysonCheckout1::paysonAddLog('Add invoice fee product error: ' . $ex->getMessage(), 3);
             return false;
         }
-        
     }
     
     public function getProductFromRef($productRef)
@@ -1080,7 +957,8 @@ class PaysonCheckout1 extends PaymentModule
         }
     }
     
-    public function getProductTaxRate($prodcut_id) {
+    public function getProductTaxRate($prodcut_id)
+    {
         return Tax::getProductTaxRate((int) $prodcut_id);
     }
     

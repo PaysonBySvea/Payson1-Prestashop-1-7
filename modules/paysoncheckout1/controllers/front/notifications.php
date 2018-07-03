@@ -20,7 +20,7 @@ class PaysonCheckout1NotificationsModuleFrontController extends ModuleFrontContr
     public function init()
     {
 
-        $postData = file_get_contents("php://input");
+        $postData = Tools::file_get_contents("php://input");
         
         // Give order confirmation a chance to finish
         sleep(2);
