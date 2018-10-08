@@ -28,7 +28,7 @@ class PaysonCheckout1 extends PaymentModule
     {
         $this->name = 'paysoncheckout1';
         $this->tab = 'payments_gateways';
-        $this->version = '3.0.13';
+        $this->version = '3.0.14';
         $this->ps_versions_compliancy = array('min' => '1.7', 'max' => _PS_VERSION_);
         $this->author = 'Payson AB';
         $this->module_key = '';
@@ -634,6 +634,7 @@ class PaysonCheckout1 extends PaymentModule
             //$payData->setGuaranteeOffered(Configuration::get('PAYSONCHECKOUT1_GUARANTEE'));
             $payData->setGuaranteeOffered('NO');
             $payData->setShowReceiptPage(Configuration::get('PAYSONCHECKOUT1_RECEIPT'));
+            $payData->setCurrencyCode($currency->iso_code);
 
             $payResponse = $paysonApi->pay($payData);
 
