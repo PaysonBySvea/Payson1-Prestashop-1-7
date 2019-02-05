@@ -1,6 +1,6 @@
 <?php
 /**
- * 2018 Payson AB
+ * 2019 Payson AB
  *
  * NOTICE OF LICENSE
  *
@@ -10,7 +10,7 @@
  * http://opensource.org/licenses/afl-3.0.php
  *
  *  @author    Payson AB <integration@payson.se>
- *  @copyright 2018 Payson AB
+ *  @copyright 2019 Payson AB
  *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
  */
 
@@ -28,7 +28,7 @@ class PaysonCheckout1 extends PaymentModule
     {
         $this->name = 'paysoncheckout1';
         $this->tab = 'payments_gateways';
-        $this->version = '3.0.14';
+        $this->version = '3.0.15';
         $this->ps_versions_compliancy = array('min' => '1.7', 'max' => _PS_VERSION_);
         $this->author = 'Payson AB';
         $this->module_key = '';
@@ -41,7 +41,7 @@ class PaysonCheckout1 extends PaymentModule
         $this->displayName = $this->l('Payson Checkout 1.0');
         $this->description = $this->l('Offer a secure payment option with Payson. Invoice, Card payments and Bank payments.');
 
-        $this->moduleVersion = sprintf('payson_checkout1_prestashop17|%s|%s', $this->version, _PS_VERSION_);
+        $this->moduleVersion = sprintf('CO1_PrestaShop_1.7|%s|%s', $this->version, _PS_VERSION_);
 
         if (!count(Currency::checkPaymentCurrencies($this->id))) {
             $this->warning = $this->l('No currency has been set for this module.');
@@ -741,9 +741,13 @@ class PaysonCheckout1 extends PaymentModule
                 $this->validateOrder((int) $cart->id, Configuration::get("PAYSONCHECKOUT1_ORDER_STATE_PAID"), $total, $this->displayName, $comment, array(), (int) $currency->id, false, $customer->secure_key);
 
                 // Get new order ID
-                $order = Order::getOrderByCartId((int) ($cart->id));
+                $orderId = Order::getOrderByCartId((int) ($cart->id));
+                
+                // Set transcation ID (purchase ID)
+                $order = new Order((int) $orderId);
+                $this->setTransactionId($order->reference, $paymentDetails->getPurchaseId());
 
-                return $order;
+                return $orderId;
             } else {
                 PaysonCheckout1::paysonAddLog('PS order already exits.');
             }
@@ -751,6 +755,13 @@ class PaysonCheckout1 extends PaymentModule
             PaysonCheckout1::paysonAddLog('PS failed to create order: ' . $ex->getMessage());
         }
         return false;
+    }
+    
+    public function setTransactionId($ps_order_ref, $transaction_id)
+    {
+        Db::getInstance()->update('order_payment', array(
+            'transaction_id' => pSQL($transaction_id),
+        ), 'order_reference = "'.pSQL($ps_order_ref).'"');
     }
     
     public function validPaysonCurrency($currency)
