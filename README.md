@@ -1,8 +1,8 @@
-# Payson Checkout 1.0
+# Payson 1.0
 
 ## Description
 
-* Module for PrestaShop 1.7.x implementing Payson Checkout 1.0
+* Module for PrestaShop 1.7.x implementing Payson 1.0
 
 
 ## Backup
